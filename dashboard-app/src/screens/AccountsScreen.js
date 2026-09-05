@@ -7,16 +7,12 @@ import {
   StyleSheet,
   RefreshControl,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import api from "../services/api";
-
-const PLATFORM_EMOJI = {
-  facebook: "📘",
-  instagram: "📸",
-  youtube: "▶️",
-  twitter: "𝕏",
-  linkedin: "💼",
-  tiktok: "🎵",
-};
+import { colors, radii, spacing, typography, panelShadow } from "../theme/theme";
+import ScreenHeader from "../components/ScreenHeader";
+import StatusBadge from "../components/StatusBadge";
+import PlatformIcon from "../components/PlatformIcon";
 
 export default function AccountsScreen({ navigation }) {
   const [accounts, setAccounts] = useState([]);
@@ -44,71 +40,83 @@ export default function AccountsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Mere Accounts</Text>
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => navigation.navigate("AddAccount")}
-        >
-          <Text style={styles.addBtnText}>+ Add</Text>
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        eyebrow="Dashboard"
+        title="My Accounts"
+        subtitle={`${accounts.length} connected ${accounts.length === 1 ? "account" : "accounts"}`}
+        action={{
+          label: "Add",
+          icon: <Ionicons name="add" size={16} color={colors.accent} />,
+          onPress: () => navigation.navigate("AddAccount"),
+        }}
+      />
 
       <FlatList
         data={accounts}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ padding: 16 }}
+        refreshControl={<RefreshControl tintColor={colors.accent} refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={{ padding: spacing.lg, flexGrow: 1 }}
         ListEmptyComponent={
-          <Text style={styles.empty}>Abhi koi account add nahi hua. "+ Add" dabao.</Text>
+          <View style={styles.emptyWrap}>
+            <Ionicons name="cube-outline" size={32} color={colors.textMuted} />
+            <Text style={styles.empty}>No accounts added yet. Tap "+ Add" to get started.</Text>
+          </View>
         }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}
+            activeOpacity={0.8}
             onPress={() => navigation.navigate("Schedules", { accountId: item.id, accountName: item.displayName })}
           >
-            <Text style={styles.emoji}>{PLATFORM_EMOJI[item.platform] || "🔗"}</Text>
+            <PlatformIcon platform={item.platform} />
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>{item.displayName}</Text>
-              <Text style={styles.cardSub}>
-                {item.platform} · {item.active ? "Active" : "Paused"}
-              </Text>
+              <Text style={styles.cardSub}>{item.platform}</Text>
             </View>
+            <StatusBadge
+              label={item.active ? "Active" : "Paused"}
+              tone={item.active ? "success" : "neutral"}
+            />
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} style={{ marginLeft: spacing.sm }} />
           </TouchableOpacity>
         )}
       />
 
       <TouchableOpacity style={styles.logBtn} onPress={() => navigation.navigate("ActivityLog")}>
-        <Text style={styles.logBtnText}>Activity Log dekho →</Text>
+        <Ionicons name="pulse-outline" size={16} color={colors.accent} />
+        <Text style={styles.logBtnText}>View Activity Log</Text>
+        <Ionicons name="arrow-forward" size={16} color={colors.accent} />
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#111827" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 50,
-  },
-  title: { color: "#fff", fontSize: 22, fontWeight: "700" },
-  addBtn: { backgroundColor: "#4F46E5", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  addBtnText: { color: "#fff", fontWeight: "600" },
-  empty: { color: "#9CA3AF", textAlign: "center", marginTop: 40 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  emptyWrap: { alignItems: "center", justifyContent: "center", marginTop: 60, gap: 12 },
+  empty: { color: colors.textMuted, textAlign: "center", paddingHorizontal: 30 },
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1F2937",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    ...panelShadow,
   },
-  emoji: { fontSize: 26, marginRight: 14 },
-  cardTitle: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  cardSub: { color: "#9CA3AF", fontSize: 13, marginTop: 2 },
-  logBtn: { padding: 16, alignItems: "center" },
-  logBtnText: { color: "#818CF8", fontWeight: "600" },
+  cardTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: "700" },
+  cardSub: { color: colors.textSecondary, fontSize: 12, marginTop: 2, textTransform: "capitalize" },
+  logBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.bgElevated,
+  },
+  logBtnText: { color: colors.accent, fontWeight: "700", fontSize: 13, letterSpacing: 0.3 },
 });

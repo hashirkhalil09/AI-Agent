@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import api from "../services/api";
+import { colors, radii, spacing, typography } from "../theme/theme";
+import { PrimaryButton } from "../components/Buttons";
+import PlatformIcon from "../components/PlatformIcon";
 
 const PLATFORMS = ["facebook", "instagram", "youtube", "twitter", "linkedin", "tiktok"];
 
@@ -11,7 +15,7 @@ export default function AddAccountScreen({ navigation }) {
 
   const handleSave = async () => {
     if (!displayName) {
-      Alert.alert("Error", "Account/Page ka naam likho");
+      Alert.alert("Error", "Please enter an account/page name");
       return;
     }
     setSaving(true);
@@ -19,72 +23,107 @@ export default function AddAccountScreen({ navigation }) {
       await api.post("/api/accounts", { platform, displayName });
       navigation.goBack();
     } catch (err) {
-      Alert.alert("Error", err.response?.data?.error || "Save nahi hua");
+      Alert.alert("Error", err.response?.data?.error || "Failed to save");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 20, paddingTop: 60 }}>
-      <Text style={styles.title}>Naya Account Add Karo</Text>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing.lg, paddingTop: 60 }}>
+      <Text style={typography.eyebrow}>New Connection</Text>
+      <Text style={styles.title}>Add New Account</Text>
 
       <Text style={styles.label}>Platform</Text>
-      <View style={styles.platformRow}>
-        {PLATFORMS.map((p) => (
-          <TouchableOpacity
-            key={p}
-            style={[styles.platformChip, platform === p && styles.platformChipActive]}
-            onPress={() => setPlatform(p)}
-          >
-            <Text style={[styles.platformText, platform === p && styles.platformTextActive]}>
-              {p}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.platformGrid}>
+        {PLATFORMS.map((p) => {
+          const active = platform === p;
+          return (
+            <TouchableOpacity
+              key={p}
+              style={[styles.platformChip, active && styles.platformChipActive]}
+              onPress={() => setPlatform(p)}
+              activeOpacity={0.85}
+            >
+              <PlatformIcon platform={p} size={18} />
+              <Text style={[styles.platformText, active && styles.platformTextActive]}>{p}</Text>
+              {active ? (
+                <Ionicons name="checkmark-circle" size={16} color={colors.accent} style={{ marginLeft: "auto" }} />
+              ) : null}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      <Text style={styles.label}>Page / Channel Naam</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="e.g. My Business Page"
-        placeholderTextColor="#888"
-        value={displayName}
-        onChangeText={setDisplayName}
+      <Text style={styles.label}>Page / Channel Name</Text>
+      <View style={styles.inputRow}>
+        <Ionicons name="pricetag-outline" size={16} color={colors.textMuted} style={{ marginRight: 8 }} />
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. My Business Page"
+          placeholderTextColor={colors.textMuted}
+          value={displayName}
+          onChangeText={setDisplayName}
+        />
+      </View>
+
+      <View style={styles.noteBox}>
+        <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
+        <Text style={styles.note}>
+          Note: This only creates the account record. To actually publish, you'll
+          need to connect that platform's Developer App (Phase 2) — the Access
+          Token will need to be added to the backend's .env file.
+        </Text>
+      </View>
+
+      <PrimaryButton
+        label={saving ? "Saving..." : "Save Account"}
+        onPress={handleSave}
+        disabled={saving}
+        loading={saving}
+        style={{ marginTop: spacing.xl }}
       />
-
-      <Text style={styles.note}>
-        Note: Ye sirf account record banata hai. Actual publishing ke liye is
-        platform ka Developer App connect karna hoga (Phase 2) — Access Token
-        backend ke .env mein daalna padega.
-      </Text>
-
-      <TouchableOpacity style={styles.button} onPress={handleSave} disabled={saving}>
-        <Text style={styles.buttonText}>{saving ? "Saving..." : "Save Account"}</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#111827" },
-  title: { color: "#fff", fontSize: 20, fontWeight: "700", marginBottom: 20 },
-  label: { color: "#9CA3AF", marginBottom: 8, marginTop: 12 },
-  platformRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  title: { ...typography.title, marginTop: 4, marginBottom: spacing.lg },
+  label: { ...typography.label, marginBottom: spacing.sm, marginTop: spacing.md },
+  platformGrid: { gap: spacing.sm },
   platformChip: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: "#374151",
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginRight: 8,
-    marginBottom: 8,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  platformChipActive: { backgroundColor: "#4F46E5", borderColor: "#4F46E5" },
-  platformText: { color: "#9CA3AF" },
-  platformTextActive: { color: "#fff", fontWeight: "600" },
-  input: { backgroundColor: "#1F2937", color: "#fff", padding: 14, borderRadius: 10 },
-  note: { color: "#6B7280", fontSize: 12, marginTop: 16, lineHeight: 18 },
-  button: { backgroundColor: "#4F46E5", padding: 16, borderRadius: 10, marginTop: 30 },
-  buttonText: { color: "#fff", textAlign: "center", fontWeight: "600" },
+  platformChipActive: { borderColor: colors.accentDim, backgroundColor: colors.accentSoft },
+  platformText: { color: colors.textSecondary, marginLeft: spacing.sm, textTransform: "capitalize", fontWeight: "600" },
+  platformTextActive: { color: colors.textPrimary },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+  },
+  input: { flex: 1, color: colors.textPrimary, paddingVertical: 13, fontSize: 14 },
+  noteBox: {
+    flexDirection: "row",
+    gap: 8,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginTop: spacing.lg,
+  },
+  note: { flex: 1, color: colors.textMuted, fontSize: 12, lineHeight: 18 },
 });
