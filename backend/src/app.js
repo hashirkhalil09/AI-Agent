@@ -15,6 +15,15 @@ app.get("/", (req, res) => {
   res.json({ status: "ok", service: "ai-social-agent-api" });
 });
 
+// TikTok URL prefix ownership verification file — required once for
+// developers.tiktok.com "URL properties" verification. Safe to leave in
+// permanently, TikTok may re-check it later.
+app.get("/tiktokQKH7eMNhvU7jxUYQxLKGsBNZglTP6tzQ.txt", (req, res) => {
+  res
+    .type("text/plain")
+    .send("tiktok-developers-site-verification=QKH7eMNhvU7jxUYQxLKGsBNZglTP6tzQ");
+});
+
 app.get("/terms", (req, res) => {
   res.type("html").send(`
     <html><head><title>PrimeFlux — Terms of Service</title></head>
