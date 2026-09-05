@@ -1,7 +1,7 @@
 const axios = require("axios");
 
 /**
- * Generates caption text via Claude API, and an image via the configured
+ * Generates caption text via Groq API, and an image via the configured
  * image AI provider. If API keys are not set yet (Phase 1 testing without
  * keys), it returns clearly-marked placeholder content so the rest of the
  * pipeline (scheduling, publishing, dashboard) can still be tested end to end.
@@ -18,9 +18,9 @@ async function generateContent({ platform, topic, contentType }) {
 }
 
 async function generateCaption({ platform, topic }) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    return `[PLACEHOLDER] ${platform} post about: ${topic} — ANTHROPIC_API_KEY set karo asli caption ke liye.`;
+    return `[PLACEHOLDER] ${platform} post about: ${topic} — GROQ_API_KEY set karo asli caption ke liye.`;
   }
 
   const prompt = `Likho ek engaging, natural ${platform} post caption is topic par: "${topic}".
@@ -28,23 +28,22 @@ Platform ke tone ke mutabiq likho (${platform === "linkedin" ? "professional" : 
 Sirf caption text do, koi extra explanation nahi. Hashtags zaroori ho to 2-3 se zyada mat lagao.`;
 
   const response = await axios.post(
-    "https://api.anthropic.com/v1/messages",
+    "https://api.groq.com/openai/v1/chat/completions",
     {
-      model: "claude-sonnet-4-6",
+      model: "llama-3.3-70b-versatile",
       max_tokens: 300,
       messages: [{ role: "user", content: prompt }],
     },
     {
       headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        Authorization: `Bearer ${apiKey}`,
         "content-type": "application/json",
       },
     }
   );
 
-  const textBlock = response.data.content.find((b) => b.type === "text");
-  return textBlock ? textBlock.text.trim() : `Post about ${topic}`;
+  const text = response.data.choices?.[0]?.message?.content;
+  return text ? text.trim() : `Post about ${topic}`;
 }
 
 async function generateImage(topic) {
