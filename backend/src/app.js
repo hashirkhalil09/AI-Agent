@@ -31,6 +31,14 @@ app.get("/tiktokQKH7eMNhvU7jxUYQxLKGsBNZglTP6tzQ.txt", (req, res) => {
     .send("tiktok-developers-site-verification=QKH7eMNhvU7jxUYQxLKGsBNZglTP6tzQ");
 });
 
+// Naya TikTok URL prefix verification file (Sandbox app ke liye — TikTok ne
+// re-verify karte waqt ek naya verification code diya hai).
+app.get("/tiktokzuC12QCL661EIDwL2LSbNkla1Oqb6gXd.txt", (req, res) => {
+  res
+    .type("text/plain")
+    .send("tiktok-developers-site-verification=zuC12QCL661EIDwL2LSbNkla1Oqb6gXd");
+});
+
 // --- Media proxy for TikTok photo posting ---
 // TikTok's PULL_FROM_URL only accepts URLs under a domain/prefix the app has
 // verified ownership of. AI-generated image URLs come from third-party
