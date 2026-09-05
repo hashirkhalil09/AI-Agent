@@ -57,7 +57,7 @@ async function publish(account, post) {
   }
 
   // 2) Our own domain proxies the AI-generated image, since PULL_FROM_URL
-  //    only accepts URLs under a domain this app has verified ownership of.
+  //    only accepts URLs under a domain/prefix the app has verified ownership of.
   const photoUrl = `${baseUrl.replace(/\/$/, "")}/media/${post.id}`;
 
   // 3) Initialize the direct post.
@@ -93,7 +93,29 @@ async function publish(account, post) {
     throw new Error(`TikTok init error: ${initRes.data.error.code} — ${initRes.data.error.message}`);
   }
 
-  return initRes.data;
+  // DIAGNOSTIC: content/init only means TikTok *accepted* the request — it
+  // then downloads/processes the photo from photoUrl asynchronously, which
+  // can fail (e.g. our /media proxy timing out, wrong content-type, etc.)
+  // without that failure ever reaching this function. We poll status/fetch
+  // once, a few seconds later, so the real processing status is visible in
+  // errorMsg / Activity Log instead of being silently lost.
+  const publishId = initRes.data?.data?.publish_id;
+  let statusCheck = null;
+  if (publishId) {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+      const statusRes = await axios.post(
+        `${API_BASE}/post/publish/status/fetch/`,
+        { publish_id: publishId },
+        { headers }
+      );
+      statusCheck = statusRes.data;
+    } catch (err) {
+      statusCheck = { statusCheckError: err.response?.data || err.message };
+    }
+  }
+
+  return { ...initRes.data, statusCheck };
 }
 
 module.exports = { publish };
