@@ -1,0 +1,61 @@
+// Database schema — Postgres (Render Postgres compatible)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Owner {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model SocialAccount {
+  id          String   @id @default(uuid())
+  platform    String   // facebook | instagram | youtube | twitter | linkedin | tiktok
+  displayName String   // e.g. "My Business Page"
+  externalId  String?  // page id / channel id (filled once connected)
+  accessToken String?  // encrypted token (phase 2, empty for now)
+  timezone    String   @default("Asia/Karachi")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  schedules   Schedule[]
+  posts       Post[]
+}
+
+model Schedule {
+  id              String   @id @default(uuid())
+  accountId       String
+  account         SocialAccount @relation(fields: [accountId], references: [id])
+  cronExpression  String   // e.g. "0 9,18 * * *" (9am & 6pm daily)
+  contentTopic    String   // brief for AI: what to post about
+  contentType     String   @default("text_image") // text_image | text_only | video (phase2)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  accountId   String
+  account     SocialAccount @relation(fields: [accountId], references: [id])
+  caption     String
+  imageUrl    String?
+  status      String   @default("draft") // draft | scheduled | published | failed
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  errorMsg    String?
+  createdAt   DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  action    String   // "post_generated" | "post_published" | "post_failed" | "login"
+  detail    String
+  createdAt DateTime @default(now())
+}

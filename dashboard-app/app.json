@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "AI Social Agent",
+    "slug": "ai-social-agent",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#111827"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "com.aisocialagent.dashboard",
+      "adaptiveIcon": {
+        "backgroundColor": "#111827"
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
