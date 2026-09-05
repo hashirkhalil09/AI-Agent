@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const axios = require("axios");
 
 const authRoutes = require("./routes/auth");
 const accountRoutes = require("./routes/accounts");
@@ -30,13 +31,27 @@ app.get("/tiktokQKH7eMNhvU7jxUYQxLKGsBNZglTP6tzQ.txt", (req, res) => {
     .send("tiktok-developers-site-verification=QKH7eMNhvU7jxUYQxLKGsBNZglTP6tzQ");
 });
 
-// --- TikTok OAuth (Login Kit redirect URI) ---
+// --- Media proxy for TikTok photo posting ---
+// TikTok's PULL_FROM_URL only accepts URLs under a domain/prefix the app has
+// verified ownership of. AI-generated image URLs come from third-party
+// hosts, so we proxy them through our own (verified) domain here.
+const prismaForMedia = require("./config/db");
+app.get("/media/:postId", async (req, res) => {
+  try {
+    const post = await prismaForMedia.post.findUnique({ where: { id: req.params.postId } });
+    if (!post || !post.imageUrl) return res.status(404).send("Not found");
+
+    const upstream = await axios.get(post.imageUrl, { responseType: "stream" });
+    res.set("Content-Type", upstream.headers["content-type"] || "image/jpeg");
+    upstream.data.pipe(res);
+  } catch (err) {
+    res.status(500).send("Media proxy error: " + err.message);
+  }
+});
 // /tiktok/auth  -> kholo browser mein, apne TikTok account se login/consent do
 // /tiktok/callback -> TikTok yahan wapas bhejta hai, ye code ko access_token
 //                     mein exchange karke screen pe dikha deta hai (copy karke
 //                     .env mein TIKTOK_ACCESS_TOKEN/REFRESH_TOKEN/OPEN_ID daalo)
-const axios = require("axios");
-
 app.get("/tiktok/auth", (req, res) => {
   const clientKey = process.env.TIKTOK_CLIENT_KEY;
   const redirectUri = `${req.protocol}://${req.get("host")}/tiktok/callback`;
