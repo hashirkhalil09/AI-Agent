@@ -50,10 +50,11 @@ async function generateImage(topic) {
   const apiKey = process.env.IMAGE_AI_API_KEY;
   if (!apiKey) {
     // Placeholder image so the pipeline is fully testable without a key.
-    // FIX: ".png" extension zaroori hai — bina extension ke placehold.co
-    // SVG return karta hai, jo TikTok ka photo format check reject kar
-    // deta hai ("file_format_check_failed"). ".png" se real PNG milta hai.
-    return `https://placehold.co/1080x1080.png?text=${encodeURIComponent(topic).slice(0, 40)}`;
+    // FIX: ".jpg" extension zaroori hai. Bina extension ke placehold.co SVG
+    // deta hai, aur TikTok ka photo-post endpoint PNG bhi accept nahi karta
+    // (sirf JPEG/JPG) — dono cases mein "file_format_check_failed" aata hai.
+    // ".jpg" se real JPEG milta hai jo TikTok accept karta hai.
+    return `https://placehold.co/1080x1080.jpg?text=${encodeURIComponent(topic).slice(0, 40)}`;
   }
 
   // Phase 2: yahan apna chosen image API (Ideogram / Flux / DALL-E) ka
