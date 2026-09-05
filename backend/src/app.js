@@ -24,6 +24,73 @@ app.get("/tiktokQKH7eMNhvU7jxUYQxLKGsBNZglTP6tzQ.txt", (req, res) => {
     .send("tiktok-developers-site-verification=QKH7eMNhvU7jxUYQxLKGsBNZglTP6tzQ");
 });
 
+// --- TikTok OAuth (Login Kit redirect URI) ---
+// /tiktok/auth  -> kholo browser mein, apne TikTok account se login/consent do
+// /tiktok/callback -> TikTok yahan wapas bhejta hai, ye code ko access_token
+//                     mein exchange karke screen pe dikha deta hai (copy karke
+//                     .env mein TIKTOK_ACCESS_TOKEN/REFRESH_TOKEN/OPEN_ID daalo)
+const axios = require("axios");
+
+app.get("/tiktok/auth", (req, res) => {
+  const clientKey = process.env.TIKTOK_CLIENT_KEY;
+  const redirectUri = `${req.protocol}://${req.get("host")}/tiktok/callback`;
+  if (!clientKey) {
+    return res.status(500).send("TIKTOK_CLIENT_KEY .env mein set nahi hai.");
+  }
+  const url =
+    `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}` +
+    `&scope=video.publish,user.info.basic` +
+    `&response_type=code` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&state=primeflux`;
+  res.redirect(url);
+});
+
+app.get("/tiktok/callback", async (req, res) => {
+  const { code, error, error_description } = req.query;
+  if (error) {
+    return res.status(400).send(`TikTok error: ${error} — ${error_description || ""}`);
+  }
+  if (!code) {
+    return res.status(400).send("Koi authorization code nahi mila.");
+  }
+
+  const redirectUri = `${req.protocol}://${req.get("host")}/tiktok/callback`;
+
+  try {
+    const tokenRes = await axios.post(
+      "https://open.tiktokapis.com/v2/oauth/token/",
+      new URLSearchParams({
+        client_key: process.env.TIKTOK_CLIENT_KEY,
+        client_secret: process.env.TIKTOK_CLIENT_SECRET,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: redirectUri,
+      }),
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+    );
+
+    const { access_token, refresh_token, open_id, expires_in } = tokenRes.data;
+
+    res.type("html").send(`
+      <html><body style="font-family:sans-serif;max-width:700px;margin:40px auto;">
+        <h2>✅ TikTok authorized</h2>
+        <p>Ye values copy karke Render/​.env mein daalo, phir is page ko band kar do:</p>
+        <pre style="background:#eee;padding:16px;white-space:pre-wrap;">
+TIKTOK_ACCESS_TOKEN=${access_token}
+TIKTOK_REFRESH_TOKEN=${refresh_token}
+TIKTOK_OPEN_ID=${open_id}
+        </pre>
+        <p>Access token expires_in: ${expires_in} seconds — expire hone par refresh_token se renew karna hoga.</p>
+      </body></html>
+    `);
+  } catch (err) {
+    res
+      .status(500)
+      .send(`Token exchange fail hua: ${err.response ? JSON.stringify(err.response.data) : err.message}`);
+  }
+});
+
 app.get("/terms", (req, res) => {
   res.type("html").send(`
     <html><head><title>PrimeFlux — Terms of Service</title></head>
