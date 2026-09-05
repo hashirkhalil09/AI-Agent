@@ -5,6 +5,16 @@ const prisma = require("./config/db");
 
 const PORT = process.env.PORT || 5000;
 
+// Safety net: agar koi bug crash paida kare (e.g. AI API se unexpected error),
+// server band nahi hoga — sirf log hoga. Isse ek buggy request poore server
+// ko down nahi kar sakti.
+process.on("unhandledRejection", (err) => {
+  console.error("⚠️  Unhandled promise rejection:", err);
+});
+process.on("uncaughtException", (err) => {
+  console.error("⚠️  Uncaught exception:", err);
+});
+
 async function ensureOwnerExists() {
   const count = await prisma.owner.count();
   if (count > 0) return;

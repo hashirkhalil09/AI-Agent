@@ -4,6 +4,15 @@ const prisma = require("./config/db");
 const { generateContent } = require("./services/aiContent");
 const { publishPost } = require("./services/publisher");
 
+// Safety net: worker 24/7 chalna chahiye, ek schedule ka error poore
+// worker ko crash na kare.
+process.on("unhandledRejection", (err) => {
+  console.error("⚠️  Unhandled promise rejection:", err);
+});
+process.on("uncaughtException", (err) => {
+  console.error("⚠️  Uncaught exception:", err);
+});
+
 console.log("🕒 Scheduler worker start ho raha hai...");
 
 // Har minute check karta hai: kaunsi schedules is minute pe due hain.
