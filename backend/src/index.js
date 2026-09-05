@@ -38,6 +38,11 @@ async function start() {
   app.listen(PORT, () => {
     console.log(`🚀 API server chal raha hai: http://localhost:${PORT}`);
   });
+
+  // Free Render plan pe alag "worker" service paid hai, isliye scheduler
+  // ko isi web process ke andar hi chalate hain (ek hi service, free rehta
+  // hai). require karte hi worker.js apna cron loop khud start kar deta hai.
+  require("./worker");
 }
 
 start().catch((err) => {
