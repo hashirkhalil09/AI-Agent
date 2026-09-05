@@ -30,7 +30,7 @@ Sirf caption text do, koi extra explanation nahi. Hashtags zaroori ho to 2-3 se 
   const response = await axios.post(
     "https://api.groq.com/openai/v1/chat/completions",
     {
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       max_tokens: 300,
       messages: [{ role: "user", content: prompt }],
     },
