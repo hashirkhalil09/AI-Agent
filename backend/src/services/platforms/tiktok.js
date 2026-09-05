@@ -35,7 +35,18 @@ async function publish(account, post) {
 
   // 1) Query creator info — required before Direct Post, also tells us
   //    which privacy_level values this account/app combo is allowed to use.
-  const creatorRes = await axios.post(`${API_BASE}/post/publish/creator_info/query/`, {}, { headers });
+  let creatorRes;
+  try {
+    creatorRes = await axios.post(`${API_BASE}/post/publish/creator_info/query/`, {}, { headers });
+  } catch (err) {
+    // DIAGNOSTIC: surface TikTok's actual error body instead of a generic
+    // "Request failed with status code XXX" so the real cause is visible
+    // in errorMsg / Activity Log.
+    throw new Error(
+      `creator_info/query failed (HTTP ${err.response?.status}): ${JSON.stringify(err.response?.data || err.message)}`
+    );
+  }
+
   const privacyOptions = creatorRes.data?.data?.privacy_level_options || [];
   const privacyLevel = privacyOptions.includes("SELF_ONLY")
     ? "SELF_ONLY"
@@ -50,25 +61,33 @@ async function publish(account, post) {
   const photoUrl = `${baseUrl.replace(/\/$/, "")}/media/${post.id}`;
 
   // 3) Initialize the direct post.
-  const initRes = await axios.post(
-    `${API_BASE}/post/publish/content/init/`,
-    {
-      post_info: {
-        title: post.caption.slice(0, 90),
-        description: post.caption.slice(0, 4000),
-        privacy_level: privacyLevel,
-        disable_comment: false,
+  let initRes;
+  try {
+    initRes = await axios.post(
+      `${API_BASE}/post/publish/content/init/`,
+      {
+        post_info: {
+          title: post.caption.slice(0, 90),
+          description: post.caption.slice(0, 4000),
+          privacy_level: privacyLevel,
+          disable_comment: false,
+        },
+        source_info: {
+          source: "PULL_FROM_URL",
+          photo_cover_index: 0,
+          photo_images: [photoUrl],
+        },
+        post_mode: "DIRECT_POST",
+        media_type: "PHOTO",
       },
-      source_info: {
-        source: "PULL_FROM_URL",
-        photo_cover_index: 0,
-        photo_images: [photoUrl],
-      },
-      post_mode: "DIRECT_POST",
-      media_type: "PHOTO",
-    },
-    { headers }
-  );
+      { headers }
+    );
+  } catch (err) {
+    // DIAGNOSTIC: same as above — surface the real TikTok error body.
+    throw new Error(
+      `content/init failed (HTTP ${err.response?.status}): ${JSON.stringify(err.response?.data || err.message)}`
+    );
+  }
 
   if (initRes.data?.error?.code && initRes.data.error.code !== "ok") {
     throw new Error(`TikTok init error: ${initRes.data.error.code} — ${initRes.data.error.message}`);
