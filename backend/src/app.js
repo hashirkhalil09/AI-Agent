@@ -8,6 +8,12 @@ const postRoutes = require("./routes/posts");
 
 const app = express();
 
+// Render (aur zyada tar hosting platforms) HTTPS ko proxy ke peeche terminate
+// karte hain — iske bina Express req.protocol ko "http" samajh leta hai,
+// jisse /tiktok/auth wala redirect_uri galat (http://...) ban jata hai aur
+// TikTok "redirect_uri" mismatch error deta hai.
+app.set("trust proxy", 1);
+
 app.use(cors());
 app.use(express.json());
 
