@@ -50,10 +50,16 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-// DELETE remove an account
+// DELETE remove an account (and everything that references it, so the
+// foreign-key RESTRICT constraint on Post/Schedule doesn't block it)
 router.delete("/:id", async (req, res) => {
   try {
-    await prisma.socialAccount.delete({ where: { id: req.params.id } });
+    const accountId = req.params.id;
+    await prisma.$transaction([
+      prisma.post.deleteMany({ where: { accountId } }),
+      prisma.schedule.deleteMany({ where: { accountId } }),
+      prisma.socialAccount.delete({ where: { id: accountId } }),
+    ]);
     res.json({ success: true });
   } catch (err) {
     console.error("DELETE /api/accounts/:id failed:", err.message);
