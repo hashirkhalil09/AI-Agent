@@ -5,11 +5,13 @@ const requireAuth = require("../middleware/auth");
 const router = express.Router();
 router.use(requireAuth);
 
-// Tables that hold app data (safe to wipe without breaking login).
-// "Owner" (login accounts) is intentionally excluded by default — clearing it
-// would log everyone out and block logins until the server restarts and
-// recreates a default owner from OWNER_EMAIL/OWNER_PASSWORD.
-const DATA_TABLES = ["Post", "Schedule", "SocialAccount", "ActivityLog"];
+// Whitelist of tables the dashboard is allowed to clear. "Owner" is included
+// here but the frontend shows a strong warning for it — clearing it logs
+// everyone out and blocks logins until the server restarts and recreates a
+// default owner from OWNER_EMAIL/OWNER_PASSWORD.
+// "_prisma_migrations" is intentionally NOT included — clearing it breaks
+// the app permanently.
+const ALLOWED_TABLES = ["Post", "Schedule", "SocialAccount", "ActivityLog", "Owner"];
 
 // GET /api/admin/db-info — current database size, for display in the dashboard
 router.get("/db-info", async (req, res) => {
@@ -25,16 +27,25 @@ router.get("/db-info", async (req, res) => {
 });
 
 // POST /api/admin/clear-database
-// body: { includeOwners: boolean }  (default false)
+// body: { tables: string[] }  — must be a subset of ALLOWED_TABLES
 router.post("/clear-database", async (req, res) => {
-  const includeOwners = req.body && req.body.includeOwners === true;
+  const requested = Array.isArray(req.body?.tables) ? req.body.tables : [];
+
+  // Only allow known table names through — never trust the raw request body
+  // directly in a SQL string.
+  const tables = requested.filter((t) => ALLOWED_TABLES.includes(t));
+
+  if (tables.length === 0) {
+    return res.status(400).json({ error: "No valid tables selected." });
+  }
+
+  const clearingOwner = tables.includes("Owner");
 
   try {
-    const tables = includeOwners ? [...DATA_TABLES, "Owner"] : DATA_TABLES;
     const quoted = tables.map((t) => `"${t}"`).join(", ");
 
-    // TRUNCATE ... CASCADE clears the tables (and anything referencing them)
-    // and RESTART IDENTITY resets auto-increment/sequence counters.
+    // TRUNCATE ... CASCADE clears the selected tables (and anything
+    // referencing them) and RESTART IDENTITY resets sequence counters.
     await prisma.$executeRawUnsafe(
       `TRUNCATE TABLE ${quoted} RESTART IDENTITY CASCADE;`
     );
@@ -43,11 +54,14 @@ router.post("/clear-database", async (req, res) => {
     // Postgres's normal autovacuum cycle.
     await prisma.$executeRawUnsafe("VACUUM FULL;");
 
-    if (!includeOwners) {
+    // Only log the action if ActivityLog itself still exists with data
+    // flowing into it (skip if Owner was cleared — req.owner may still be
+    // valid for this request, but logging isn't essential in that case).
+    if (!clearingOwner) {
       await prisma.activityLog.create({
         data: {
           action: "db_cleared",
-          detail: `Database cleared from dashboard by ${req.owner.email}`,
+          detail: `Cleared tables [${tables.join(", ")}] from dashboard by ${req.owner.email}`,
         },
       });
     }
