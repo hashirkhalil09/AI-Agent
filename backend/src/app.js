@@ -6,6 +6,7 @@ const authRoutes = require("./routes/auth");
 const accountRoutes = require("./routes/accounts");
 const scheduleRoutes = require("./routes/schedules");
 const postRoutes = require("./routes/posts");
+const adminRoutes = require("./routes/admin");
 
 const app = express();
 
@@ -168,6 +169,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/accounts", accountRoutes);
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Generic error handler
 app.use((err, req, res, next) => {
